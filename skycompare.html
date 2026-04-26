@@ -886,6 +886,7 @@ const ROUTE_TYPES = {
 };
 
 /* ── STATE ── */
+const SERPAPI_KEY = "69857cf0ec0544a391abe66a381184348461c7df4273ed454faff3f0c8b4d3c2";
 let tripMode = 'roundtrip';
 let allFlights = [];
 let currentSort = 'cheap';
@@ -957,42 +958,50 @@ function generateFlights(origin, destinations, depFromH, depToH) {
   return flights;
 }
 
-/* ── SEARCH ── */
-function doSearch() {
+<script>
+async function doSearch() {
   const origin = document.getElementById('origin').value;
-  if (!origin) { alert('Por favor selecciona una ciudad de salida.'); return; }
+  const destination = document.getElementById('destination').value;
+  const depDate = document.getElementById('depDate').value;
 
-  const depFromH = parseInt(document.getElementById('depFrom').value);
-  const depToH   = parseInt(document.getElementById('depTo').value);
-  const retBefore = parseInt(document.getElementById('retBefore').value);
-  const airlineF = document.getElementById('airlineFilter').value;
-  const stopF = document.getElementById('stopFilter').value;
-  const destSel = document.getElementById('destination').value;
-
-  const ALL_DESTS = ['Madrid','Barcelona','Londres','Roma','Bruselas','Amsterdam','Berlin','Lisboa','Milan','Dublin','Varsovia','Atenas','Praga','Budapest','Marrakech','Canarias','Mallorca','Niza','Edimburgo','Cracovia','Estambul'];
-  let dests = destSel === 'any' ? ALL_DESTS : [destSel];
-  dests = dests.filter(d => d !== origin);
+  if (!origin || !depDate) { 
+    alert('Veuillez sélectionner une ville de départ et une date.'); 
+    return; 
+  }
 
   document.getElementById('loadingOverlay').classList.add('show');
 
-  setTimeout(() => {
-    let flights = generateFlights(origin, dests, depFromH, depToH);
+  try {
+    const response = await fetch(`/api/search?departure_id=${origin}&arrival_id=${destination}&outbound_date=${depDate}`);
+    
+    if (!response.ok) throw new Error('Erreur réseau');
+    
+    const data = await response.json();
 
-    flights = flights.filter(f => {
-      if (depFromH > 0 && f.depH < depFromH) return false;
-      if (depToH < 24 && f.depH >= depToH) return false;
-      if (airlineF !== 'all' && f.airline.name !== airlineF) return false;
-      if (stopF === 'direct' && !f.isDirect) return false;
-      if (stopF === 'stop' && f.isDirect) return false;
-      if (tripMode === 'roundtrip' && retBefore < 24 && f.retArrH >= retBefore) return false;
-      return true;
+    // Mapping des données SerpApi vers l'interface SkyCompare
+    allFlights = (data.best_flights || []).map(flight => {
+      const firstLeg = flight.flights[0];
+      return {
+        id: Math.random().toString(36).slice(2),
+        airline: {
+          name: firstLeg.airline,
+          code: firstLeg.airline_logo ? '' : firstLeg.airline.substring(0,2).toUpperCase(),
+          badge: '#E8F1FB',
+          text: '#0055A5',
+          url: `https://www.google.com/search?q=site+officiel+${firstLeg.airline}`,
+          dot: '#0055A5'
+        },
+        dep: firstLeg.departure_airport.time.split(' ')[1],
+        depH: parseInt(firstLeg.departure_airport.time.split(' ')[1].split(':')[0]),
+        arr: firstLeg.arrival_airport.time.split(' ')[1],
+        duration: `${Math.floor(flight.total_duration / 60)}h${flight.total_duration % 60}`,
+        price: flight.price,
+        isDirect: flight.layovers ? false : true,
+        destination: firstLeg.arrival_airport.name,
+        isNight: parseInt(firstLeg.departure_airport.time.split(' ')[1].split(':')[0]) >= 21,
+        isEarly: parseInt(firstLeg.departure_airport.time.split(' ')[1].split(':')[0]) < 7
+      };
     });
-
-    allFlights = flights;
-    activeAirlines = new Set(flights.map(f => f.airline.name));
-    currentSort = 'cheap';
-    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('sb-cheap').classList.add('active');
 
     document.getElementById('loadingOverlay').classList.remove('show');
     document.getElementById('welcome').style.display = 'none';
@@ -1000,7 +1009,13 @@ function doSearch() {
 
     buildAirlineBar(origin);
     renderFlights(origin);
-  }, 900);
+  } catch (error) {
+    console.error("Erreur:", error);
+    alert("Erreur lors de la récupération des vols réels. Vérifiez la configuration du serveur.");
+    document.getElementById('loadingOverlay').classList.remove('show');
+  }
+}
+</script>
 }
 
 /* ── AIRLINE BAR ── */
