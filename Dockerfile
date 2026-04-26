@@ -1,12 +1,7 @@
-# On utilise un serveur web léger
-FROM nginx:alpine
-
-# On copie ton fichier HTML vers le dossier de Nginx
-# Attention : vérifie que ton fichier s'appelle bien skycompare.html
-COPY skycompare.html /usr/share/nginx/html/index.html
-
-# On expose le port 80
-EXPOSE 80
-
-# On lance le serveur
-CMD ["nginx", "-g", "daemon off;"]
+FROM node:18
+WORKDIR /app
+COPY package*.json ./
+RUN npm install express axios
+COPY . .
+EXPOSE 10000
+CMD ["node", "server.js"]
