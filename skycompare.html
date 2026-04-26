@@ -958,7 +958,6 @@ function generateFlights(origin, destinations, depFromH, depToH) {
   return flights;
 }
 
-<script>
 async function doSearch() {
   const origin = document.getElementById('origin').value;
   const destination = document.getElementById('destination').value;
@@ -1014,8 +1013,6 @@ async function doSearch() {
     alert("Erreur lors de la récupération des vols réels. Vérifiez la configuration du serveur.");
     document.getElementById('loadingOverlay').classList.remove('show');
   }
-}
-</script>
 }
 
 /* ── AIRLINE BAR ── */
