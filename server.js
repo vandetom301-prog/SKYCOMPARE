@@ -3,10 +3,14 @@ const axios = require('axios');
 const path = require('path');
 const app = express();
 
-const SERPAPI_KEY = process.env.SERPAPI_KEY; // On récupérera la clé depuis Render
+const SERPAPI_KEY = process.env.SERPAPI_KEY;
 
-app.use(express.static('.')); // Sert ton fichier skycompare.html
+// CETTE LIGNE DIT AU SERVEUR D'OUVRIR TON FICHIER PAR DÉFAUT
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'skycompare.html'));
+});
 
+// La route pour l'API
 app.get('/api/search', async (req, res) => {
   try {
     const { departure_id, arrival_id, outbound_date } = req.query;
@@ -21,9 +25,9 @@ app.get('/api/search', async (req, res) => {
     });
     res.json(response.data);
   } catch (error) {
-    res.status(500).json({ error: "Erreur lors de l'appel API" });
+    res.status(500).json({ error: "Erreur API" });
   }
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`Serveur lancé sur le port ${PORT}`));
+app.listen(PORT, () => console.log(`Serveur sur le port ${PORT}`));
